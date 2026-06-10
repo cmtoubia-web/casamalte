@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casamalte — Dashboard de Retomada</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #FAFAF8;
+    --bg2: #F2F0EB;
+    --bg3: #E8E5DE;
+    --surface: #FFFFFF;
+    --border: rgba(60,50,30,0.12);
+    --border2: rgba(60,50,30,0.22);
+    --text1: #1C1A14;
+    --text2: #5A5344;
+    --text3: #8C8070;
+    --amber: #C47A1A;
+    --amber-bg: #FFF3DE;
+    --amber-border: #E8A830;
+    --green: #3B7A2A;
+    --green-bg: #EAF4DE;
+    --green-border: #6DBF50;
+    --blue: #1A5FA8;
+    --blue-bg: #E6F0FB;
+    --blue-border: #5599DD;
+    --red: #B83030;
+    --red-bg: #FCEAEA;
+    --red-border: #DD6060;
+    --hop: #5A8A1A;
+    --malt: #C47A1A;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18160F;
+      --bg2: #221F14;
+      --bg3: #2C281A;
+      --surface: #1E1B11;
+      --border: rgba(255,220,120,0.1);
+      --border2: rgba(255,220,120,0.2);
+      --text1: #F0EAD6;
+      --text2: #B8A880;
+      --text3: #7A6E50;
+      --amber-bg: #2A1E08;
+      --amber-border: #7A5010;
+      --green-bg: #0E1E08;
+      --green-border: #2A5018;
+      --blue-bg: #08142A;
+      --blue-border: #184080;
+      --red-bg: #2A0808;
+      --red-border: #801818;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text1);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    gap: 16px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--amber);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+  .logo-text { font-size: 15px; font-weight: 600; color: var(--text1); letter-spacing: -0.01em; }
+  .logo-sub { font-size: 11px; color: var(--text3); font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--amber-border);
+    background: var(--amber-bg);
+    color: var(--amber);
+    white-space: nowrap;
+  }
+  .pill.green { border-color: var(--green-border); background: var(--green-bg); color: var(--green); }
+  .pill.red { border-color: var(--red-border); background: var(--red-bg); color: var(--red); }
+  .pill.blue { border-color: var(--blue-border); background: var(--blue-bg); color: var(--blue); }
+  #timestamp { font-size: 11px; color: var(--text3); }
+
+  /* LAYOUT */
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+
+  /* METRIC STRIP */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .metric-value { font-size: 24px; font-weight: 600; line-height: 1.1; color: var(--text1); }
+  .metric-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+  .metric-value.amber { color: var(--amber); }
+  .metric-value.green { color: var(--green); }
+  .metric-value.red { color: var(--red); }
+  .metric-value.blue { color: var(--blue); }
+
+  /* READINESS BANNER */
+  .readiness {
+    background: linear-gradient(135deg, var(--amber-bg) 0%, var(--surface) 100%);
+    border: 1px solid var(--amber-border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .readiness-main { display: flex; align-items: baseline; gap: 8px; }
+  .readiness-pct { font-size: 44px; font-weight: 700; color: var(--amber); line-height: 1; }
+  .readiness-label { font-size: 13px; color: var(--text2); max-width: 160px; }
+  .readiness-phases { display: flex; gap: 16px; flex-wrap: wrap; flex: 1; }
+  .rphase { display: flex; flex-direction: column; gap: 4px; min-width: 110px; flex: 1; }
+  .rphase-name { font-size: 11px; color: var(--text3); }
+  .rphase-bar-wrap { height: 6px; background: var(--bg3); border-radius: 3px; }
+  .rphase-bar { height: 6px; border-radius: 3px; }
+  .rphase-pct { font-size: 13px; font-weight: 600; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 0; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab-btn:hover { color: var(--text2); }
+  .tab-btn.active { color: var(--amber); border-bottom-color: var(--amber); font-weight: 500; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+  }
+  .card-title { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* PHASE PROGRESS */
+  .phase-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .phase-row:last-child { margin-bottom: 0; }
+  .phase-name { font-size: 13px; min-width: 130px; }
+  .phase-bar-wrap { flex: 1; height: 8px; background: var(--bg2); border-radius: 4px; }
+  .phase-bar { height: 8px; border-radius: 4px; }
+  .phase-pct { font-size: 13px; font-weight: 600; min-width: 36px; text-align: right; }
+
+  /* TASK LIST */
+  .task-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 8px; }
+  .task-row:last-child { border-bottom: none; }
+  .task-name { color: var(--text1); flex: 1; }
+  .task-dep { font-size: 11px; color: var(--text3); margin-left: 4px; }
+  .badge {
+    display: inline-flex; align-items: center;
+    font-size: 11px; font-weight: 500;
+    padding: 2px 8px; border-radius: 20px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .badge.ok { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge.prog { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-border); }
+  .badge.wait { background: var(--bg2); color: var(--text3); border: 1px solid var(--border2); }
+  .badge.danger { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .badge.warn { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+  /* ORÇAMENTO TABLE */
+  .orc-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .orc-table th { text-align: left; font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 8px 8px 0; border-bottom: 1px solid var(--border2); }
+  .orc-table th:not(:first-child) { text-align: right; }
+  .orc-table td { padding: 7px 8px 7px 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .orc-table td:not(:first-child) { text-align: right; }
+  .orc-table tr:last-child td { border-bottom: none; font-weight: 600; }
+  .orc-table .cat-header td { background: var(--bg2); font-size: 11px; color: var(--text3); padding: 4px 8px; font-weight: 500; }
+
+  /* GANTT */
+  .gantt-header { display: flex; gap: 8px; margin-bottom: 6px; font-size: 11px; color: var(--text3); align-items: center; }
+  .gantt-row-g { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 12px; }
+  .gantt-label { min-width: 150px; max-width: 150px; color: var(--text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+  .gantt-track { flex: 1; height: 22px; background: var(--bg2); border-radius: 4px; position: relative; min-width: 180px; }
+  .gantt-bar { height: 22px; border-radius: 4px; position: absolute; top: 0; display: flex; align-items: center; padding: 0 6px; font-size: 10px; color: #fff; white-space: nowrap; overflow: hidden; font-weight: 500; }
+  .gantt-phase { min-width: 50px; flex-shrink: 0; }
+  .gantt-week-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); padding: 0 2px; margin-bottom: 2px; flex: 1; min-width: 180px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ALERT BOXES */
+  .alert {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-bottom: 10px;
+    border-left: 3px solid;
+  }
+  .alert.amber { background: var(--amber-bg); border-color: var(--amber); color: var(--text1); }
+  .alert.red { background: var(--red-bg); border-color: var(--red); color: var(--text1); }
+  .alert.green { background: var(--green-bg); border-color: var(--green); color: var(--text1); }
+  .alert strong { font-weight: 600; }
+  .alert .alert-title { font-weight: 600; display: block; margin-bottom: 2px; }
+
+  /* FLUXO CAIXA */
+  .fc-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; gap: 8px; }
+  .fc-row:last-child { border-bottom: none; }
+  .fc-desc { flex: 2; color: var(--text1); }
+  .fc-cat { flex: 1; font-size: 11px; color: var(--text3); }
+  .fc-val { min-width: 80px; text-align: right; font-weight: 500; }
+  .fc-saldo { min-width: 80px; text-align: right; }
+  .btn-add {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; font-size: 13px; font-weight: 500;
+    background: var(--amber); color: #fff; border: none;
+    border-radius: var(--radius-sm); cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-add:hover { opacity: 0.85; }
+  .btn-sec {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; font-size: 13px;
+    background: var(--surface); color: var(--text2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-sec:hover { background: var(--bg2); }
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: var(--radius);
+    padding: 20px 24px; max-width: 420px; width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  }
+  .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+  .form-field { margin-bottom: 12px; }
+  .form-field label { display: block; font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+  .form-field input, .form-field select {
+    width: 100%; padding: 8px 10px; font-size: 13px;
+    border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--text1);
+  }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* INDICADORES SUGERIDOS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    box-shadow: var(--shadow);
+  }
+  .kpi-name { font-size: 12px; font-weight: 600; color: var(--text1); margin-bottom: 2px; }
+  .kpi-value { font-size: 20px; font-weight: 700; color: var(--amber); margin-bottom: 2px; }
+  .kpi-desc { font-size: 11px; color: var(--text3); }
+
+  /* FOOTER */
+  .footer { text-align: center; padding: 2rem; font-size: 11px; color: var(--text3); border-top: 1px solid var(--border); margin-top: 2rem; }
+
+  @media (max-width: 500px) {
+    .container { padding: 1rem; }
+    .header { padding: 0 1rem; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .gantt-label { min-width: 90px; max-width: 90px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a class="logo" href="#">
+      <div class="logo-icon">🍺</div>
+      <div>
+        <div class="logo-text">Casamalte</div>
+        <div class="logo-sub">Dashboard de Retomada</div>
+      </div>
+    </a>
+    <div class="header-right">
+      <span class="pill">Pré-operação</span>
+      <span id="timestamp" style="font-size:11px;color:var(--text3)"></span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">Orçamento previsto</div>
+      <div class="metric-value">R$ 23.100</div>
+      <div class="metric-sub">Total do projeto</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Realizado</div>
+      <div class="metric-value amber">R$ 3.600</div>
+      <div class="metric-sub">15,6% do previsto</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Pendente</div>
+      <div class="metric-value red">R$ 19.500</div>
+      <div class="metric-sub">A desembolsar</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Tarefas concluídas</div>
+      <div class="metric-value green">2 / 15</div>
+      <div class="metric-sub">13% do total</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Saldo de caixa</div>
+      <div class="metric-value red">– R$ 2.000</div>
+      <div class="metric-sub">1 transação registrada</div>
+    </div>
+  </div>
+
+  <!-- READINESS BANNER -->
+  <div class="readiness">
+    <div class="readiness-main">
+      <div class="readiness-pct">33%</div>
+      <div class="readiness-label">Prontidão estimada para a 1ª brassagem</div>
+    </div>
+    <div class="readiness-phases">
+      <div class="rphase">
+        <div class="rphase-name">Fase 1 — Fábrica</div>
+        <div class="rphase-bar-wrap"><div class="rphase-bar" style="width:45%;background:#378ADD"></div></div>
+        <div class="rphase-pct" style="color:#378ADD">45%</div>
+      </div>
+      <div class="rphase">
+        <div class="rphase-name">Fase 2 — Utilidades</div>
+        <div class="rphase-bar-wrap"><div class="rphase-bar" style="width:33%;background:#EF9F27"></div></div>
+        <div class="rphase-pct" style="color:#EF9F27">33%</div>
+      </div>
+      <div class="rphase">
+        <div class="rphase-name">Fase 3 — Insumos</div>
+        <div class="rphase-bar-wrap"><div class="rphase-bar" style="width:25%;background:#E24B4A"></div></div>
+        <div class="rphase-pct" style="color:#E24B4A">25%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs" role="tablist">
+    <button class="tab-btn active" onclick="switchTab('cronograma',this)" role="tab">📋 Cronograma</button>
+    <button class="tab-btn" onclick="switchTab('orcamento',this)" role="tab">💰 Orçamento</button>
+    <button class="tab-btn" onclick="switchTab('gantt',this)" role="tab">📅 Gantt</button>
+    <button class="tab-btn" onclick="switchTab('fluxo',this)" role="tab">💸 Fluxo de Caixa</button>
+    <button class="tab-btn" onclick="switchTab('indicadores',this)" role="tab">📈 Indicadores</button>
+    <button class="tab-btn" onclick="switchTab('alertas',this)" role="tab">⚠️ Alertas</button>
+  </div>
+
+  <!-- TAB: CRONOGRAMA -->
+  <div id="tab-cronograma" class="tab-pane active">
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Progresso por fase</div>
+        <div class="phase-row">
+          <div class="phase-name">Fase 1 — Fábrica</div>
+          <div class="phase-bar-wrap"><div class="phase-bar" style="width:45%;background:#378ADD"></div></div>
+          <div class="phase-pct" style="color:#378ADD">45%</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-name">Fase 2 — Utilidades</div>
+          <div class="phase-bar-wrap"><div class="phase-bar" style="width:33%;background:#EF9F27"></div></div>
+          <div class="phase-pct" style="color:#EF9F27">33%</div>
+        </div>
+        <div class="phase-row">
+          <div class="phase-name">Fase 3 — Insumos</div>
+          <div class="phase-bar-wrap"><div class="phase-bar" style="width:25%;background:#E24B4A"></div></div>
+          <div class="phase-pct" style="color:#E24B4A">25%</div>
+        </div>
+        <div class="phase-row" style="border-top:1px solid var(--border);padding-top:10px;margin-top:6px;">
+          <div class="phase-name" style="font-weight:600">Projeto geral</div>
+          <div class="phase-bar-wrap"><div class="phase-bar" style="width:33%;background:#3B7A2A"></div></div>
+          <div class="phase-pct" style="color:#3B7A2A">33%</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Distribuição de tarefas</div>
+        <div style="position:relative;height:180px;">
+          <canvas id="statusChart" role="img" aria-label="Gráfico pizza: 2 concluídas, 5 em andamento, 8 aguardando">2 concluídas, 5 em andamento, 8 aguardando.</canvas>
+        </div>
+        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+          <span class="legend-item"><span class="legend-swatch" style="background:#3B7A2A"></span>Concluído (2)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#378ADD"></span>Em andamento (5)</span>
+          <span class="legend-item"><span class="legend-swatch" style="background:#B4B2A9"></span>Aguardando (8)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Fase 1 — Colocar a fábrica em condições de operar</div>
+      <div class="task-row"><span class="task-name">Compressor 1 e automação</span><span class="badge ok">✓ Concluído</span></div>
+      <div class="task-row"><span class="task-name">Compressor 2 <span class="task-dep">— depende: pós-compressor 1</span></span><span class="badge wait">Aguardando</span></div>
+      <div class="task-row"><span class="task-name">Controle de nível tanque etanol</span><span class="badge prog">Em andamento</span></div>
+      <div class="task-row"><span class="task-name">Compra de energia</span><span class="badge prog">Em andamento</span></div>
+      <div class="task-row"><span class="task-name">CETESB</span><span class="badge prog">Em andamento</span></div>
+      <div class="task-row"><span class="task-name">Limpeza e organização <span class="task-dep">— depende: vedações</span></span><span class="badge wait">Aguardando</span></div>
+      <div class="task-row"><span class="task-name">Vedações dos fermentadores</span><span class="badge prog">Em andamento</span></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Fase 2 — Garantir utilidades</div>
+        <div class="task-row"><span class="task-name">GLP</span><span class="badge ok">✓ Concluído</span></div>
+        <div class="task-row"><span class="task-name">CO₂</span><span class="badge wait">Aguardando</span></div>
+        <div class="task-row"><span class="task-name">Soda e peracético</span><span class="badge wait">Aguardando</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Fase 3 — Garantir insumos</div>
+        <div class="task-row"><span class="task-name">Sais</span><span class="badge wait">Aguardando</span></div>
+        <div class="task-row"><span class="task-name">Enzimas <span class="task-dep">— ver geladeira</span></span><span class="badge prog">Em andamento</span></div>
+        <div class="task-row"><span class="task-name">Pilsen — 1.500 L</span><span class="badge wait">Aguardando</span></div>
+        <div class="task-row"><span class="task-name">Session IPA — 200 L</span><span class="badge wait">Aguardando</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: ORÇAMENTO -->
+  <div id="tab-orcamento" class="tab-pane">
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-title">Previsto × realizado por categoria</div>
+      <div style="position:relative;height:260px;">
+        <canvas id="orcChart" role="img" aria-label="Comparação previsto vs realizado por categoria de orçamento">Gráfico de barras por categoria.</canvas>
+      </div>
+      <div style="display:flex;gap:16px;justify-content:center;margin-top:10px;flex-wrap:wrap;">
+        <span class="legend-item"><span class="legend-swatch" style="background:#B5D4F4"></span>Previsto</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#378ADD"></span>Realizado</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Detalhamento completo</div>
+      <div style="overflow-x:auto;">
+        <table class="orc-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Previsto</th>
+              <th>Realizado</th>
+              <th>Diferença</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="cat-header"><td colspan="5">Refrigeração</td></tr>
+            <tr><td>Etanol para refrigeração</td><td>R$ 4.000</td><td>—</td><td style="color:var(--red)">– R$ 4.000</td><td><span class="badge wait">Planejado</span></td></tr>
+            <tr><td>Automação refrigeração</td><td>R$ 2.000</td><td>R$ 2.000</td><td style="color:var(--green)">R$ 0</td><td><span class="badge ok">Realizado</span></td></tr>
+            <tr class="cat-header"><td colspan="5">Gases</td></tr>
+            <tr><td>Carga inicial GLP e CO₂</td><td>R$ 5.000</td><td>—</td><td style="color:var(--red)">– R$ 5.000</td><td><span class="badge wait">Planejado</span></td></tr>
+            <tr class="cat-header"><td colspan="5">Químicos</td></tr>
+            <tr><td>Produtos químicos</td><td>R$ 2.500</td><td>—</td><td style="color:var(--red)">– R$ 2.500</td><td><span class="badge wait">Planejado</span></td></tr>
+            <tr class="cat-header"><td colspan="5">Energia</td></tr>
+            <tr><td>Energia inicial</td><td>R$ 2.500</td><td>—</td><td style="color:var(--red)">– R$ 2.500</td><td><span class="badge warn">45–60 dias</span></td></tr>
+            <tr class="cat-header"><td colspan="5">Insumos</td></tr>
+            <tr><td>Pilsen — 1.500 L</td><td>R$ 2.500</td><td>—</td><td style="color:var(--red)">– R$ 2.500</td><td><span class="badge wait">15 dias</span></td></tr>
+            <tr><td>Session IPA + levedura</td><td>R$ 1.500</td><td>—</td><td style="color:var(--red)">– R$ 1.500</td><td><span class="badge wait">15 dias</span></td></tr>
+            <tr><td>Sais e enzimas</td><td>R$ 1.500</td><td>—</td><td style="color:var(--red)">– R$ 1.500</td><td><span class="badge wait">Imediato</span></td></tr>
+            <tr class="cat-header"><td colspan="5">Licenças</td></tr>
+            <tr><td>CETESB</td><td>R$ 1.600</td><td>R$ 1.600</td><td style="color:var(--amber)">⚠ Verificar</td><td><span class="badge warn">Verificar</span></td></tr>
+            <tr style="font-weight:600;border-top:2px solid var(--border2);">
+              <td>Total</td><td>R$ 23.100</td><td>R$ 3.600</td><td style="color:var(--red)">– R$ 19.500</td><td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: GANTT -->
+  <div id="tab-gantt" class="tab-pane">
+    <div class="card">
+      <div class="card-title">Cronograma de 60 dias — linha do tempo estimada</div>
+      <div style="overflow-x:auto;" id="gantt-container">
+        <div style="min-width:500px;">
+          <div style="display:flex;gap:8px;margin-bottom:4px;font-size:10px;color:var(--text3);">
+            <div style="min-width:150px;max-width:150px;"></div>
+            <div style="min-width:50px;"></div>
+            <div class="gantt-week-labels">
+              <span>Sem 1</span><span>Sem 2</span><span>Sem 3</span><span>Sem 4</span><span>S5-6</span><span>S7-8</span>
+            </div>
+          </div>
+          <div id="gantt-rows-el"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+        <span class="legend-item"><span class="legend-swatch" style="background:#3B7A2A"></span>Concluído</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#378ADD"></span>Em andamento</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:#B4B2A9"></span>Aguardando</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: FLUXO DE CAIXA -->
+  <div id="tab-fluxo" class="tab-pane">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;color:var(--text2);">Registre entradas e saídas para acompanhar o saldo em tempo real.</div>
+      <button class="btn-add" onclick="document.getElementById('modal-fc').classList.add('open')">+ Novo lançamento</button>
+    </div>
+
+    <div class="metrics" style="margin-bottom:1rem;">
+      <div class="metric">
+        <div class="metric-label">Total entradas</div>
+        <div class="metric-value green" id="fc-total-in">R$ 0</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Total saídas</div>
+        <div class="metric-value red" id="fc-total-out">R$ 2.000</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Saldo atual</div>
+        <div class="metric-value red" id="fc-saldo">– R$ 2.000</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Extrato de transações</div>
+      <div id="fc-list">
+        <div class="fc-row" style="font-size:11px;color:var(--text3);font-weight:500;padding-bottom:4px;border-bottom:1px solid var(--border2);">
+          <span class="fc-desc">Descrição</span>
+          <span class="fc-cat">Categoria</span>
+          <span class="fc-val">Valor</span>
+          <span class="fc-saldo">Saldo</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="position:relative;height:220px;margin-top:1rem;">
+      <canvas id="fcChart" role="img" aria-label="Evolução do saldo de caixa">Gráfico de saldo acumulado.</canvas>
+    </div>
+  </div>
+
+  <!-- TAB: INDICADORES -->
+  <div id="tab-indicadores" class="tab-pane">
+    <div class="alert amber" style="margin-bottom:1rem;">
+      <span class="alert-title">Indicadores automáticos</span>
+      Os valores abaixo são calculados com base nos dados registrados. Conforme você lança transações no Fluxo de Caixa e atualiza a planilha, eles se atualizam automaticamente.
+    </div>
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-name">Execução orçamentária</div>
+        <div class="kpi-value">15,6%</div>
+        <div class="kpi-desc">Realizado / Previsto total</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-name">Custo/litro estimado (Pilsen)</div>
+        <div class="kpi-value">R$ 1,67</div>
+        <div class="kpi-desc">R$ 2.500 ÷ 1.500 L previstos</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-name">Tarefas críticas abertas</div>
+        <div class="kpi-value amber">13</div>
+        <div class="kpi-desc">Em andamento + Aguardando</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-name">Bloqueador de brassagem</div>
+        <div class="kpi-value red">Compressor 2</div>
+        <div class="kpi-desc">Fase 1 — aguardando instalação</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-name">Licenças obtidas</div>
+        <div class="kpi-value amber">1/1</div>
+        <div class="kpi-desc">CETESB — verificar duplicidade</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-name">% concluído (tarefas)</div>
+        <div class="kpi-value">13%</div>
+        <div class="kpi-desc">2 de 15 tarefas no cronograma</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-name">Burn rate estimado</div>
+        <div class="kpi-value amber">R$ 1.800</div>
+        <div class="kpi-desc">Por semana (base atual)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-name">Semanas para 1ª brassagem</div>
+        <div class="kpi-value blue">~6–8 sem</div>
+        <div class="kpi-desc">Se bloqueadores resolvidos já</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+      <div class="card-title">Indicadores sugeridos para adicionar</div>
+      <div class="task-row"><span class="task-name"><strong>Volume produzido / meta (L)</strong> — Acompanhar após 1ª brassagem</span></div>
+      <div class="task-row"><span class="task-name"><strong>Eficiência de brassagem (%)</strong> — Extrato obtido vs teórico</span></div>
+      <div class="task-row"><span class="task-name"><strong>Custo total por batelada (R$)</strong> — Insumos + energia + mão de obra</span></div>
+      <div class="task-row"><span class="task-name"><strong>Estoque de CO₂ (dias)</strong> — Kg disponíveis ÷ consumo diário</span></div>
+      <div class="task-row"><span class="task-name"><strong>% de equipamentos operacionais</strong> — Checklist de itens por status</span></div>
+      <div class="task-row"><span class="task-name"><strong>Gastos não planejados acumulados</strong> — Itens fora do orçamento original</span></div>
+    </div>
+  </div>
+
+  <!-- TAB: ALERTAS -->
+  <div id="tab-alertas" class="tab-pane">
+    <div class="alert red">
+      <span class="alert-title">🔴 Bloqueador crítico — Compressor 2</span>
+      Sem o Compressor 2, a refrigeração não opera em plena capacidade. Toda a Fase 2 (CO₂, químicos) e Fase 3 (insumos) dependem da fábrica operacional. Prioridade máxima.
+    </div>
+    <div class="alert amber">
+      <span class="alert-title">⚠️ Duplicidade no lançamento CETESB</span>
+      A planilha registra R$ 1.600 previsto E R$ 1.600 realizado para CETESB simultaneamente, com status "Verificar". Confirme se o pagamento ocorreu ou se é erro de lançamento para não comprometer o orçamento.
+    </div>
+    <div class="alert amber">
+      <span class="alert-title">⚠️ Fluxo de caixa incompleto</span>
+      Apenas 1 transação (R$ 2.000 — Gás e serviço Chiller) está registrada. Se a automação de refrigeração e a CETESB foram pagas (R$ 3.600 realizados no orçamento), esses lançamentos estão faltando no fluxo de caixa.
+    </div>
+    <div class="alert amber">
+      <span class="alert-title">⏱️ Prazo de energia — 45 a 60 dias</span>
+      O prazo mais longo do projeto. Iniciar o processo imediatamente para não atrasar a primeira brassagem.
+    </div>
+    <div class="alert green">
+      <span class="alert-title">✅ Fase 1 mais avançada (45%)</span>
+      Compressor 1, automação e GLP concluídos. Foco agora em destravar Compressor 2 e vedações para liberar a Fase 2.
+    </div>
+
+    <div class="card" style="margin-top:1rem;">
+      <div class="card-title">Resumo de prioridades imediatas</div>
+      <div class="task-row">
+        <span style="min-width:22px;font-weight:600;color:var(--red)">1.</span>
+        <span class="task-name">Contratar instalação do Compressor 2</span>
+        <span class="badge danger">Crítico</span>
+      </div>
+      <div class="task-row">
+        <span style="min-width:22px;font-weight:600;color:var(--amber)">2.</span>
+        <span class="task-name">Solicitar compra de energia (prazo longo)</span>
+        <span class="badge warn">Imediato</span>
+      </div>
+      <div class="task-row">
+        <span style="min-width:22px;font-weight:600;color:var(--amber)">3.</span>
+        <span class="task-name">Confirmar pagamento CETESB e corrigir planilha</span>
+        <span class="badge warn">Verificar</span>
+      </div>
+      <div class="task-row">
+        <span style="min-width:22px;font-weight:600;color:var(--amber)">4.</span>
+        <span class="task-name">Concluir vedações dos fermentadores</span>
+        <span class="badge prog">Em andamento</span>
+      </div>
+      <div class="task-row">
+        <span style="min-width:22px;font-weight:600;color:var(--text3)">5.</span>
+        <span class="task-name">Registrar todos os pagamentos no fluxo de caixa</span>
+        <span class="badge wait">Pendente</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL FLUXO DE CAIXA -->
+<div class="modal-overlay" id="modal-fc" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <h3>Novo lançamento</h3>
+    <div class="form-field">
+      <label>Data</label>
+      <input type="date" id="fc-data">
+    </div>
+    <div class="form-field">
+      <label>Descrição</label>
+      <input type="text" id="fc-desc-input" placeholder="Ex: Compra de sais">
+    </div>
+    <div class="form-field">
+      <label>Categoria</label>
+      <select id="fc-cat-input">
+        <option>Refrigeração</option>
+        <option>Gases</option>
+        <option>Químicos</option>
+        <option>Energia</option>
+        <option>Insumos</option>
+        <option>Licenças</option>
+        <option>Manutenção</option>
+        <option>Outros</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Tipo</label>
+      <select id="fc-tipo">
+        <option value="saida">Saída (gasto)</option>
+        <option value="entrada">Entrada (receita)</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <label>Valor (R$)</label>
+      <input type="number" id="fc-valor" placeholder="0,00" min="0" step="0.01">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-sec" onclick="document.getElementById('modal-fc').classList.remove('open')">Cancelar</button>
+      <button class="btn-add" onclick="addTransaction()">Salvar lançamento</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  Casamalte · Dashboard de Retomada · Atualizado dinamicamente no navegador ·
+  Para compartilhar, basta enviar o link deste arquivo ou hospedar no GitHub Pages / Netlify
+</footer>
+
+<script>
+// TIMESTAMP
+document.getElementById('timestamp').textContent =
+  'Atualizado ' + new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+// TABS
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// STATUS CHART
+new Chart(document.getElementById('statusChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Concluído', 'Em andamento', 'Aguardando'],
+    datasets: [{ data: [2, 5, 8], backgroundColor: ['#3B7A2A','#378ADD','#B4B2A9'], borderWidth: 0 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, cutout: '60%',
+    plugins: { legend: { display: false } }
+  }
+});
+
+// ORÇAMENTO CHART
+new Chart(document.getElementById('orcChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Refrigeração', 'Gases', 'Químicos', 'Energia', 'Insumos', 'Licenças'],
+    datasets: [
+      { label: 'Previsto', data: [6000,5000,2500,2500,5500,1600], backgroundColor: '#B5D4F4' },
+      { label: 'Realizado', data: [2000,0,0,0,0,1600], backgroundColor: '#378ADD' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+      y: { grid: { color: 'rgba(128,128,128,0.08)' },
+           ticks: { callback: v => 'R$' + (v/1000).toFixed(0) + 'k', font: { size: 11 } } }
+    }
+  }
+});
+
+// GANTT
+var ganttData = [
+  { label: 'Compressor 1 + auto', start: 0, dur: 14, status: 'done', phase: 'F1' },
+  { label: 'Nível tanque etanol', start: 5, dur: 25, status: 'prog', phase: 'F1' },
+  { label: 'Compra de energia', start: 0, dur: 45, status: 'prog', phase: 'F1' },
+  { label: 'CETESB', start: 10, dur: 35, status: 'prog', phase: 'F1' },
+  { label: 'Vedações ferment.', start: 8, dur: 18, status: 'prog', phase: 'F1' },
+  { label: 'Compressor 2', start: 20, dur: 20, status: 'wait', phase: 'F1' },
+  { label: 'Limpeza/organização', start: 28, dur: 8, status: 'wait', phase: 'F1' },
+  { label: 'GLP', start: 0, dur: 10, status: 'done', phase: 'F2' },
+  { label: 'CO₂', start: 22, dur: 14, status: 'wait', phase: 'F2' },
+  { label: 'Soda e peracético', start: 22, dur: 12, status: 'wait', phase: 'F2' },
+  { label: 'Enzimas', start: 8, dur: 20, status: 'prog', phase: 'F3' },
+  { label: 'Sais', start: 20, dur: 8, status: 'wait', phase: 'F3' },
+  { label: 'Pilsen 1500L', start: 28, dur: 10, status: 'wait', phase: 'F3' },
+  { label: 'Session IPA 200L', start: 28, dur: 10, status: 'wait', phase: 'F3' },
+];
+var gColors = { done: '#3B7A2A', prog: '#378ADD', wait: '#C0BDB5' };
+var total = 60;
+var gWrap = document.getElementById('gantt-rows-el');
+ganttData.forEach(function(d) {
+  var row = document.createElement('div');
+  row.className = 'gantt-row-g';
+  var ps = (d.start / total * 100).toFixed(1);
+  var pd = (d.dur / total * 100).toFixed(1);
+  row.innerHTML =
+    '<div class="gantt-label" title="' + d.label + '">' + d.label + '</div>' +
+    '<div style="min-width:50px;font-size:11px;color:var(--text3);">' + d.phase + '</div>' +
+    '<div class="gantt-track">' +
+      '<div class="gantt-bar" style="left:' + ps + '%;width:' + pd + '%;background:' + gColors[d.status] + ';">' +
+        (d.dur > 10 ? d.label.substring(0, 12) : '') +
+      '</div>' +
+    '</div>';
+  gWrap.appendChild(row);
+});
+
+// FLUXO DE CAIXA — localStorage persistence
+var transactions = [];
+try {
+  var stored = localStorage.getItem('casamalte_fc');
+  if (stored) transactions = JSON.parse(stored);
+} catch(e) {}
+
+// seed with original data if empty
+if (transactions.length === 0) {
+  transactions.push({ data: '2025-01-10', desc: 'Gás e serviço Chiller', cat: 'Refrigeração', tipo: 'saida', valor: 2000 });
+}
+
+var fcChart;
+
+function renderFC() {
+  var listEl = document.getElementById('fc-list');
+  var header = listEl.querySelector('div');
+  listEl.innerHTML = '';
+  listEl.appendChild(header);
+
+  var saldo = 0;
+  var totalIn = 0, totalOut = 0;
+  var chartLabels = [], chartData = [];
+
+  transactions.forEach(function(t) {
+    if (t.tipo === 'entrada') { saldo += t.valor; totalIn += t.valor; }
+    else { saldo -= t.valor; totalOut += t.valor; }
+
+    var row = document.createElement('div');
+    row.className = 'fc-row';
+    row.innerHTML =
+      '<span class="fc-desc">' + (t.data || '') + ' — ' + t.desc + '</span>' +
+      '<span class="fc-cat">' + t.cat + '</span>' +
+      '<span class="fc-val" style="color:' + (t.tipo === 'entrada' ? 'var(--green)' : 'var(--red)') + '">' +
+        (t.tipo === 'saida' ? '– ' : '+ ') + 'R$ ' + t.valor.toLocaleString('pt-BR') +
+      '</span>' +
+      '<span class="fc-saldo" style="color:' + (saldo >= 0 ? 'var(--green)' : 'var(--red)') + '">' +
+        (saldo < 0 ? '– ' : '') + 'R$ ' + Math.abs(saldo).toLocaleString('pt-BR') +
+      '</span>';
+    listEl.appendChild(row);
+    chartLabels.push(t.desc.substring(0,12));
+    chartData.push(saldo);
+  });
+
+  document.getElementById('fc-total-in').textContent = 'R$ ' + totalIn.toLocaleString('pt-BR');
+  document.getElementById('fc-total-out').textContent = 'R$ ' + totalOut.toLocaleString('pt-BR');
+  var saldoEl = document.getElementById('fc-saldo');
+  saldoEl.textContent = (saldo < 0 ? '– ' : '') + 'R$ ' + Math.abs(saldo).toLocaleString('pt-BR');
+  saldoEl.className = 'metric-value ' + (saldo >= 0 ? 'green' : 'red');
+
+  if (fcChart) fcChart.destroy();
+  fcChart = new Chart(document.getElementById('fcChart'), {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Saldo acumulado', data: chartData, borderColor: '#378ADD', backgroundColor: 'rgba(55,138,221,0.08)', fill: true, tension: 0.3, pointRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => 'R$' + (v/1000).toFixed(1) + 'k', font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.07)' } },
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function addTransaction() {
+  var d = document.getElementById('fc-data').value;
+  var desc = document.getElementById('fc-desc-input').value.trim();
+  var cat = document.getElementById('fc-cat-input').value;
+  var tipo = document.getElementById('fc-tipo').value;
+  var valor = parseFloat(document.getElementById('fc-valor').value);
+  if (!desc || isNaN(valor) || valor <= 0) { alert('Preencha descrição e valor.'); return; }
+  transactions.push({ data: d, desc: desc, cat: cat, tipo: tipo, valor: valor });
+  try { localStorage.setItem('casamalte_fc', JSON.stringify(transactions)); } catch(e) {}
+  document.getElementById('modal-fc').classList.remove('open');
+  document.getElementById('fc-desc-input').value = '';
+  document.getElementById('fc-valor').value = '';
+  renderFC();
+}
+
+renderFC();
+
+// Date default
+document.getElementById('fc-data').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
